@@ -1,0 +1,88 @@
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Regular.ttf');
+}
+
+@font-face {
+  font-family: 'Liberation Mono';
+  src: url('/fonts/LiberationMono-Regular.ttf');
+}
+
+body {
+  text-align: center;
+  font-size: 12pt;
+  line-height: 1.5;
+  font-family: 'Liberation Serif', serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+code {
+  font-family: 'Liberation Mono', monospace;
+}
+
+.figure {
+  text-align: center;
+  font-style: italic;
+}
+
+.figure > img {
+  max-width: 100%;
+}
+
+.abstract {
+  position: relative;
+  margin-top: 8em;
+  margin-bottom: 8em;
+  margin-left: auto;
+  margin-right: auto;
+
+  max-width: 40em;
+  display: block;
+  text-align: center;
+}
+
+.abstract-title {
+  font-size: 14pt;
+  font-variant: small-caps;
+}
+
+.info {
+  display: block;
+  text-align: center;
+  margin-bottom: 3em;
+  line-height: 300%;
+}
+
+.return {
+  float: left;
+}
+
+.payload {
+  padding: 1em;
+  /* Bound width to ~50 characters for readability. */
+  max-width: 50em;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+
+.title-center {
+  font-size: 32pt;
+  text-align: center;
+}
+
+.subtitle-center {
+  font-size: 16pt;
+  text-align: center;
+}
+
+.back-arrow {
+  float: left;
+}
+
+.social {
+  float: right;
+}

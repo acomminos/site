@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+<title>Approaching One Driver Overhead - Andrew Comminos' Blog</title>
+<link rel="stylesheet" type="text/css" href="/css/default.css">
+</head>
+<body>
+  <div class="payload">
+    <div id="fb-root"></div>
+    <script>(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.12&appId=1690018471054271&autoLogAppEvents=1';
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script>
+
+    <a href="/">← Home</a>
+
+    <div class="title-center">Approaching One Driver Overhead</div>
+        <div class="subtitle-center">Making Direct3D games faster in Wine using modern OpenGL</div>
+    
+    <div class="info"> Andrew Comminos </div>
+
+    
+    <h2 id="motivation">Motivation</h2>
+    <p>I play <a href="https://worldofwarcraft.com/en-us/">World of Warcraft</a>. Being a Linux user requires me to run this in <a href="https://winehq.org">Wine</a>, a Windows API translation layer. While Wine is continuously improving, its performance in Direct3D games still leaves much to be desired.</p>
+    <p>Having very little familiarity with Direct3D or the Wine codebase, I decided to spend a weekend diving straight into the deep end to make things better.</p>
+    <h2 id="finding-the-bottleneck">Finding the bottleneck</h2>
+    <p>We have a bit of a head start regarding where to look- since the game runs well on Windows, we know that our bottleneck is likely to be CPU-side or synchronization related (either in NVIDIA’s GL driver, or in wine). Using tools such as <code>nvidia-smi</code> reveals that our GPU utilization is fairly low (30-40%), which reaffirms my suspicions.</p>
+    <p>But before touching a single line of code, we need visibility. What problem are we trying to solve? Where is the slowness coming from?</p>
+    <p>One of my favourite tools for answering these questions is <a href="https://perf.wiki.kernel.org/index.php/Main_Page">perf</a>, a performance counter based profiler for Linux. <code>perf</code> gives us insight into what the distribution of CPU time is- importantly, which functions are the hottest.</p>
+    <p>That’s all we need to get started here. I opened WoW and traveled to an area of the game that performed much worse under Wine- running at ~14fps, versus ~40fps in Windows. <code>perf</code> sheds a light into where our time was spent:</p>
+    <figure>
+    <img src="/images/wine-pba-vanilla-perf-top.png" alt="" /><figcaption>The output of <code>perf top</code> while running WoW.</figcaption>
+    </figure>
+    <p>Let’s analyze some of the top offenders, and figure out at a high level how to make things better.</p>
+    <p>Firstly, <strong><code>wined3d_cs_run</code></strong> leads us head first into how Wine’s Direct3D implementation works internally. <code>wined3d</code> is the library responsible for translating Direct3D calls into OpenGL calls. Newer versions of wine use a <strong>command stream</strong> to execute the OpenGL calls after translation from their D3D equivalents. Think of this as a separate thread that executes a queue of draw commands and state updates from other threads. This not only solves the issue of the multithreaded OpenGL story being nightmarish, but lets us parallelize more effectively and ensures that the resulting GL calls are executed in some serialized ordering.</p>
+    <p>Right, back to <code>wined3d_cs_run</code>. This is the core of the command stream- it’s just a function that busy-waits on a queue for commands from other threads. Some brief analysis of the source code indicates that it does no real work of interest, other than invoke op handlers for the various commands. But at least we know about command streams now!</p>
+    <p><strong><code>wined3d_resource_map</code></strong> is where things get interesting. Fundamentally, it’s a function that maps a slice of GPU memory into the host’s address space, typically for streaming geometry data or texture uploads. Given a “resource” (which is typically just a handle into some kind of GPU memory), it does the following;</p>
+    <ol type="1">
+    <li>Waits for the resource to no longer be held by any other command in the command stream.</li>
+    <li>Adds an operation to the command stream to map a section of the given resource into the host’s address space.
+    <ul>
+    <li>For resources backed by GL buffers, this is accomplished using <code>glMapBufferRange</code>.</li>
+    </ul></li>
+    <li>Waits on a response from the command stream thread, containing a pointer to the address.</li>
+    </ol>
+    <p>Intuitively, this makes a lot of sense. We need to wait for the command stream to finish before this function can return- otherwise, where would we get our pointer from? We can’t execute any OpenGL commands to map the resource off the command thread, so we’re forced to wait.</p>
+    <h2 id="what-were-up-against">What we’re up against</h2>
+    <p>I needed to learn more about how WoW uses its buffer maps to figure out what we could do here.</p>
+    <p>Enter <a href="https://apitrace.github.io/">apitrace</a>. By using <code>apitrace</code> to wrap the execution of WoW under wine, I could intercept the D3D9 calls it was making prior to hitting <code>wined3d</code>.</p>
+    <figure>
+    <img src="/images/wine-pba-d3d9-apitrace.png" alt="" /><figcaption>Some apitrace buffer locking goodness.</figcaption>
+    </figure>
+    <p>Using this data, I was able to construct a simple model of how WoW renders dynamic geometry;</p>
+    <ol type="1">
+    <li>Lock (map) vertex and index buffers with the <code>D3DLOCK_NOOVERWRITE</code> flag, which promises not to overwrite any data involved in an in-flight draw call.
+    <ul>
+    <li>This allows the GPU to avoid waiting for the prior draw call to finish before returning the buffer.</li>
+    <li>If a buffer is full, map it with the <code>D3DLOCK_DISCARD</code> flag, which invalidates the buffer’s contents.
+    <ul>
+    <li>This can either assign the buffer to a new, unused location, or do nothing at all if the buffer is not being used for any draw calls.</li>
+    </ul></li>
+    </ul></li>
+    <li>Copy vertex data into the newly mapped region using <code>memcpy</code>.</li>
+    <li>Unlock the buffers.</li>
+    <li>Execute <code>DrawIndexedPrimitive</code> on the new segment of vertex data in the buffer.</li>
+    <li>Repeat back to 1, moving your offset further into the buffer.</li>
+    </ol>
+    <p>This technique works very well for ensuring that we should never have to wait for the GPU. <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/bb147263(v=vs.85).aspx#Using_Dynamic_Vertex_and_Index_Buffers">In fact, Microsoft recommends it</a>.</p>
+    <p>But, the story with wine is less than ideal. In practice, this is what happens:</p>
+    <figure>
+    <img src="/images/wine-pba-pipeline-stall.png" alt="" /><figcaption>Note that this model is a bit simplified- the “GPU” layer is really the OpenGL driver.<br />
+    Buffer regions are denoted with capital letters.</figcaption>
+    </figure>
+    <p>This is a textbook example of a <strong>pipeline stall</strong>. By waiting for the command stream thread and the mapping thread to synchronize, we’re wasting time that could instead be spent dispatching more draw calls to the GPU. If the command stream thread is busy, the D3D thread could be waiting a nontrivial amount of time for a response! Not only this, but <code>glMapBufferRange</code>- the actual OpenGL call used to map a buffer- is <strong>slow</strong>. Actually mapping the buffers, even when synchronization is explicitly disabled, takes a long time.</p>
+    <h2 id="cease-and-persist">Cease and persist</h2>
+    <p>We could solve our problem handily by not having to wait for the CS thread. The question is- how?</p>
+    <p><strong>Suppose we had access to a large, persistently mapped buffer in the host address space. We never had to unmap it to make a draw call, and writes to it were coherently visible to the GPU without any GL calls.</strong></p>
+    <ul>
+    <li>If the flag <code>D3DLOCK_NOOVERWRITE</code> was provided, then we can return the address of the last persistent mapping for that buffer.
+    <ul>
+    <li><em>Just pointer arithmetic- no need to talk to the command stream thread!</em></li>
+    <li><em><code>D3DLOCK_NOOVERWRITE</code> fundamentally lets us ignore synchronization.</em></li>
+    </ul></li>
+    <li>If the flag <code>D3DLOCK_DISCARD</code> was provided, then we can remap the buffer to an unused section of persistently mapped GPU memory.
+    <ul>
+    <li><em>A bit trickier to implement- we’ll need an allocator in order to avoid fragmentation.</em></li>
+    </ul></li>
+    <li>Otherwise, we need to wait for the GPU to finish using the buffer (i.e. talk to the command stream thread).
+    <ul>
+    <li><em>This is fine for our purposes, since this (common) streaming geometry technique doesn’t need to wait for buffers.</em></li>
+    </ul></li>
+    </ul>
+    <p>Enter the holy grail: <code>ARB_buffer_storage</code>. This lets us allocate an immutable section of GPU memory, and allow persistent (always mapped) and coherent (write-through) maps of it. We’re effectively replacing the role of the driver here, which would handle <code>DISCARD</code> (<code>INVALIDATE</code> in GL) and <code>NOOVERWRITE</code> (<code>UNSYNCHRONIZED</code> in GL) buffer maps itself.</p>
+    <p><em>This is an AZDO (approaching zero driver overhead) style GL extension. If you’re interested, check out <a href="https://developer.nvidia.com/opengl-vulkan">this article by NVIDIA</a>.</em></p>
+    <h2 id="introducing-wine-pba">Introducing wine-pba</h2>
+    <p><code>wine-pba</code> (short for persistent buffer allocator) is a set of patches I’ve written that leverages <code>ARB_buffer_storage</code> to implement a GL-free GPU heap allocator, vastly improving the speed of buffer maps.</p>
+    <p>At device initialization, a very large OpenGL buffer is allocated. This buffer is governed by a simple re-entrant heap allocator that allows both the command stream thread and D3D thread to make allocations and recycle them independently from each other.</p>
+    <p>When a <code>D3DLOCK_DISCARD</code> map is made, the D3D thread immediately asks the allocator for a new slice of GPU memory and returns it. The command stream thread is sent an asynchronous message informing it of the discard, with information on the new buffer location so that future draw commands on the command stream thread are aware. The command stream thread returns its old buffer to the heap allocator when this happens, with a fence to ensure that the buffer isn’t reused until it is no longer being used by the GPU.</p>
+    <p>When a <code>D3DLOCK_NOOVERWRITE</code> map is made, we can just return the buffer’s mapped base address plus the offset desired. Sweet!</p>
+    <p>Otherwise, the old synchronous path is undergone- except this time, without requiring a call to <code>glMapBufferRange</code> (only waiting on a fence).</p>
+    <p>So, what does this look like?</p>
+    <figure>
+    <img src="/images/wine-pba-pipeline-good.png" alt="" /><figcaption>GPU doesn’t have to stall while threads are synchronizing. Sick.</figcaption>
+    </figure>
+    <h2 id="benchmarks">Benchmarks</h2>
+    <p>Unfortunately, WoW does not have great public-facing benchmarking functionality. I settled for using the console command <code>/timetest 1</code>, which measures the average FPS when taking a flight path- no ground NPCs or players are loaded while in-flight to reduce variation in test runs. Additionally, I eyeballed the average idle FPS in various common in-game locations.</p>
+    <p><em>These benchmarks were performed on patch 7.3.5 running with 4x SSAA at a resolution of 2560x1440. The CPU is an i5-3570k, and the GPU is a GTX 1070. The graphics preset “7” was chosen (as recommended by the game).</em></p>
+    <p><img src="/images/wine-pba-flight-path-bench.png" /></p>
+    <p><img src="/images/wine-pba-idle-fps-bench.png" /></p>
+    <p>I’m fairly satisfied with the results demonstrated by this benchmark. I hope to update this post with additional frame timing data from a GL intercept tool.</p>
+    <h2 id="whats-left">What’s left</h2>
+    <ul>
+    <li>Segregated free lists
+    <ul>
+    <li>A simple optimization that will allow us to obtain free buffers faster.</li>
+    <li>I plan to bin regions using powers of two.</li>
+    </ul></li>
+    <li>Chunked GL buffer allocation
+    <ul>
+    <li>Making a large allocation at device initialization time makes startup slower, even though modern GPUs use virtual memory.</li>
+    <li>Instead of allocating one massive buffer approaching the size of available VRAM, consider using multiple buffers and generating new buffers on-demand.</li>
+    <li>Infrequently of course, since a round-trip to the CS thread would be required.</li>
+    </ul></li>
+    <li>Polish
+    <ul>
+    <li>A few minor hacks are currently used to get wined3d to use persistent maps effectively.</li>
+    <li>GL extension support is taken for granted in many cases, checks need to be added.</li>
+    </ul></li>
+    <li>Testing
+    <ul>
+    <li>Unit tests for the heap allocator would be nice to have.</li>
+    </ul></li>
+    </ul>
+    <h2 id="conclusion">Conclusion</h2>
+    <p>You can find an early prototype of wine-pba at <a href="https://www.github.com/acomminos/wine-pba">github.com/acomminos/wine-pba</a>. <strong>This is far from production quality, and makes several (erroneous) assumptions regarding implementation capabilities</strong>. I hope to mainline this once the patchset becomes more mature.</p>
+    <p>I hope you found this post valuable. I look forward to digging deeper into how to use AZDO techniques to improve wine performance, particularly for uniform updates and texture uploads.</p>
+
+    <span class="social">
+        <div class="fb-like" data-layout="button_count" data-action="like" data-size="small" data-show-faces="true" data-share="true"></div>
+    </span>
+
+    <a href="/">← Home</a>
+  </div>
+</body>
