@@ -35,16 +35,16 @@ a {
   text-decoration: none;
 }
 
+a:hover {
+  background-color: rgba(255, 255, 255, 0.075);
+}
+
 #details > * {
   display: block;
 }
 
 .highlight {
   padding: 5px;
-}
-
-.highlight:hover {
-  background-color: rgba(255, 255, 255, 0.075);
 }
 
 .post {
@@ -66,7 +66,7 @@ a {
 
   font-family: "Fixedsys";
   color: #c0c5ce;
-  font-size: 16pt;
+  font-size: 14pt;
 }
 
 .post {
@@ -98,28 +98,43 @@ a {
   margin-top: 5px;
   margin-bottom: 5px;
 }
+
+.typein {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 2s ease-in;
+}
+
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
   </style>
   </head>
   <body>
     <div id="content">
       <div>
-        <h1>andrew comminos</h1>
+        <p class="typein">
+          Hi, I'm Andrew.
+        </p>
         <div class="divider"># Contact</div>
         <div id="details">
           <a class="highlight" href="mailto:andrew@comminos.com">email</a>
           <a class="highlight" href="https://www.github.com/acomminos">github</a>
           <a class="highlight" href="https://ca.linkedin.com/in/acomminos">linkedin</a>
-          <a class="highlight" href="https://www.twitter.com/acomminos">twitter</a>
         </div>
-        <div class="divider"># Posts</div>
-        <div id="posts">
-          <a href="/posts/2018-02-21-wined3d-profiling.html">
-          <div class="post highlight">
-            <div>Approaching One Driver Overhead</div>
-            <span class="hint">2018-02-21</span>
-          </div>
-          </a>
-        </div>
+        <div class="divider"># Links </div>
+        <ul id="posts">
+          <li>
+            check out some <a href="/posts/2018-02-21-wined3d-profiling.html">wined3d optimizations</a>
+          </li>
+          <li>
+            learn about optimizing <a href="https://developer.chrome.com/docs/capabilities/web-apis/isinputpending">JS scheduling</a>
+          </li>
+        </ul>
+        </ul>
       </div>
     </div>
   </body>
