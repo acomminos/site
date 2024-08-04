@@ -16,8 +16,8 @@ body {
   position: absolute;
   text-align: left;
   background-color: #000;
-  font-size: 12pt;
-  line-height: 1.5;
+  font-size: 14pt;
+  line-height: 2.0;
 
   text-transform: lowercase;
 
@@ -27,27 +27,30 @@ body {
   height: 100%;
 }
 
-#content a {
+.right {
+  float: right;
+}
+
+.emphasis {
   color: #a3be8c;
 }
 
 a {
   text-decoration: none;
+  color: #c0c5ce;
+  padding: 5px;
+  display: block;
 }
 
 a:hover {
   background-color: rgba(255, 255, 255, 0.075);
 }
 
-#details > * {
-  display: block;
+.hint {
+  color: #65737e;
 }
 
-.highlight {
-  padding: 5px;
-}
-
-.post {
+#posts a {
   color: #96b5b4;
 }
 
@@ -58,22 +61,15 @@ a:hover {
   font-weight: normal;
 }
 
-.contact-item {
-}
-
 #content {
   padding: 15px;
 
   font-family: "Fixedsys";
   color: #c0c5ce;
-  font-size: 14pt;
+  font-size: 16pt;
 }
 
-.post {
-  text-align: left;
-}
-
-@media only screen and (min-width: 600px) {
+@media only screen and (min-width: 800px) {
   #content {
     position: absolute;
     left: 50%;
@@ -83,14 +79,6 @@ a:hover {
     border-left: solid #4f5b66 1px;
     padding-left: 15px;
   }
-
-  .post {
-    text-align: left;
-  }
-}
-
-.hint {
-  color: #65737e;
 }
 
 .divider {
@@ -99,42 +87,30 @@ a:hover {
   margin-bottom: 5px;
 }
 
-.typein {
-  overflow: hidden;
-  white-space: nowrap;
-  animation: typing 2s ease-in;
-}
-
-
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
-}
-
   </style>
   </head>
   <body>
     <div id="content">
       <div>
-        <p class="typein">
+        <h1>
           Hi, I'm Andrew.
-        </p>
-        <div class="divider"># Contact</div>
+        </h1>
+        <div class="hint">I work on browsers at Meta.</div>
+        <div class="divider">[Contact]</div>
         <div id="details">
-          <a class="highlight" href="mailto:andrew@comminos.com">email</a>
-          <a class="highlight" href="https://www.github.com/acomminos">github</a>
-          <a class="highlight" href="https://ca.linkedin.com/in/acomminos">linkedin</a>
+          <a href="mailto:andrew@comminos.com">email<span class="emphasis right">andrew@comminos.com</span></a>
+          <a href="https://www.github.com/acomminos">github<span class="emphasis right">@acomminos</span></a>
+          <a href="https://linkedin.com/in/acomminos">linkedin<span class="emphasis right">@acomminos</span></a>
         </div>
-        <div class="divider"># Links </div>
-        <ul id="posts">
-          <li>
-            check out some <a href="/posts/2018-02-21-wined3d-profiling.html">wined3d optimizations</a>
-          </li>
-          <li>
-            learn about optimizing <a href="https://developer.chrome.com/docs/capabilities/web-apis/isinputpending">JS scheduling</a>
-          </li>
-        </ul>
-        </ul>
+        <div class="divider">[Links]</div>
+        <div id="posts">
+          <a href="/posts/2018-02-21-wined3d-profiling.html">
+            - check out some <span class="emphasis">wined3d optimizations</span>
+          </a>
+          <a href="https://developer.chrome.com/docs/capabilities/web-apis/isinputpending">
+            - learn about optimizing <span class="emphasis">JS scheduling</span>
+          </a>
+        </div>
       </div>
     </div>
   </body>
