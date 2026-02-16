@@ -12,6 +12,35 @@
   src: url('/fonts/FSEX2.ttf');
 }
 
+/* crt warmup animation */
+@keyframes crt-on {
+  0% { opacity: 0; filter: brightness(2) blur(2px); }
+  40% { opacity: 1; filter: brightness(1.4) blur(0.5px); }
+  100% { opacity: 1; filter: brightness(1) blur(0); }
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes link-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* selection colors */
+::selection {
+  background: #96b5b4;
+  color: #2b303b;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #4f5b66; }
+::-webkit-scrollbar-thumb:hover { background: #65737e; }
+
 body {
   position: absolute;
   text-align: left;
@@ -26,6 +55,23 @@ body {
   width: 100%;
   height: 100%;
   font-family: "Fixedsys";
+  animation: crt-on 0.6s ease-out;
+}
+
+/* scanlines */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
 }
 
 #header {
@@ -42,6 +88,16 @@ body {
   font-size: 18pt;
   font-weight: normal;
   color: #c0c5ce;
+  text-shadow: 0 0 8px rgba(163, 190, 140, 0.3);
+}
+
+/* blinking cursor */
+#header h1::after {
+  content: "█";
+  color: #a3be8c;
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+  font-size: 14pt;
 }
 
 .right {
@@ -57,10 +113,20 @@ a {
   color: #c0c5ce;
   padding: 5px;
   display: block;
+  transition: background-color 0.05s, color 0.05s;
 }
 
 a:hover {
-  background-color: rgba(255, 255, 255, 0.075);
+  background-color: #c0c5ce;
+  color: #000;
+}
+
+a:hover .emphasis {
+  color: #000;
+}
+
+a:hover .date {
+  color: #4f5b66;
 }
 
 .hint {
@@ -72,8 +138,22 @@ a:hover {
   padding-right: 1em;
 }
 
+.subsection a {
+  animation: link-in 0.3s ease-out both;
+}
+
+.subsection a:nth-child(1) { animation-delay: 0.15s; }
+.subsection a:nth-child(2) { animation-delay: 0.25s; }
+.subsection a:nth-child(3) { animation-delay: 0.35s; }
+.subsection a:nth-child(4) { animation-delay: 0.45s; }
+
 #posts a {
   color: #96b5b4;
+}
+
+#posts a:hover {
+  background-color: #96b5b4;
+  color: #000;
 }
 
 #content h1 {
@@ -102,6 +182,12 @@ a:hover {
   color: #4f5b66;
   margin-top: 5px;
   margin-bottom: 5px;
+  text-shadow: 0 0 6px rgba(79, 91, 102, 0.4);
+}
+
+.date {
+  color: #65737e;
+  font-size: 12pt;
 }
 
   </style>
@@ -112,20 +198,18 @@ a:hover {
     </header>
     <div id="content">
       <div>
+        <div class="divider">[Posts]</div>
+        <div id="posts" class="subsection">
+          <a href="/posts/2018-02-21-wined3d-profiling.html">
+            approaching one driver overhead <span class="date">2018-02-21</span>
+          </a>
+        </div>
         <div class="divider">[Contact]</div>
         <div id="details" class="subsection">
           <a href="mailto:andrew@comminos.com">email<span class="emphasis right">andrew@comminos.com</span></a>
           <a href="https://www.github.com/acomminos">github<span class="emphasis right">@acomminos</span></a>
           <a href="https://linkedin.com/in/acomminos">linkedin<span class="emphasis right">@acomminos</span></a>
-        </div>
-        <div class="divider">[Links]</div>
-        <div id="posts" class="subsection">
-          <a href="/posts/2018-02-21-wined3d-profiling.html">
-            check out some <span class="emphasis">wined3d optimizations</span>
-          </a>
-          <a href="https://developer.chrome.com/docs/capabilities/web-apis/isinputpending">
-            learn about optimizing <span class="emphasis">JS scheduling</span>
-          </a>
+          <a href="https://x.com/acomminos">x<span class="emphasis right">@acomminos</span></a>
         </div>
       </div>
     </div>
