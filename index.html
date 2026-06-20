@@ -94,7 +94,7 @@ body::after {
 /* blinking cursor */
 #header h1::after {
   content: "█";
-  color: #a3be8c;
+  color: #c0c5ce;
   animation: blink 1s step-end infinite;
   margin-left: 2px;
   font-size: 14pt;
@@ -125,14 +125,6 @@ a:hover .emphasis {
   color: #000;
 }
 
-a:hover .date {
-  color: #4f5b66;
-}
-
-.hint {
-  color: #a7adba;
-}
-
 .subsection {
   padding-left: 1em;
   padding-right: 1em;
@@ -140,21 +132,13 @@ a:hover .date {
 
 .subsection a {
   animation: link-in 0.3s ease-out both;
+  border-bottom: solid #4f5b66 1px;
 }
 
 .subsection a:nth-child(1) { animation-delay: 0.15s; }
 .subsection a:nth-child(2) { animation-delay: 0.25s; }
 .subsection a:nth-child(3) { animation-delay: 0.35s; }
 .subsection a:nth-child(4) { animation-delay: 0.45s; }
-
-#posts a {
-  color: #96b5b4;
-}
-
-#posts a:hover {
-  background-color: #96b5b4;
-  color: #000;
-}
 
 #content h1 {
   margin-top: 0px;
@@ -175,21 +159,9 @@ a:hover .date {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+    min-width: 360px;
   }
 }
-
-.divider {
-  color: #4f5b66;
-  margin-top: 5px;
-  margin-bottom: 5px;
-  text-shadow: 0 0 6px rgba(79, 91, 102, 0.4);
-}
-
-.date {
-  color: #65737e;
-  font-size: 12pt;
-}
-
   </style>
   </head>
   <body>
@@ -198,18 +170,11 @@ a:hover .date {
     </header>
     <div id="content">
       <div>
-        <div class="divider">[Posts]</div>
-        <div id="posts" class="subsection">
-          <a href="/posts/2018-02-21-wined3d-profiling.html">
-            approaching one driver overhead <span class="date">2018-02-21</span>
-          </a>
-        </div>
-        <div class="divider">[Contact]</div>
         <div id="details" class="subsection">
-          <a href="mailto:andrew@comminos.com">email<span class="emphasis right">andrew@comminos.com</span></a>
-          <a href="https://www.github.com/acomminos">github<span class="emphasis right">@acomminos</span></a>
-          <a href="https://linkedin.com/in/acomminos">linkedin<span class="emphasis right">@acomminos</span></a>
-          <a href="https://x.com/acomminos">x<span class="emphasis right">@acomminos</span></a>
+          <a href="mailto:andrew@comminos.com">email</a>
+          <a href="https://www.github.com/acomminos">github</a>
+          <a href="https://linkedin.com/in/acomminos">linkedin</a>
+          <a href="https://x.com/acomminos">x</a>
         </div>
       </div>
     </div>
