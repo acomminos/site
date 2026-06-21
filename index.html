@@ -5,6 +5,11 @@
     <meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport">
     <title>acomminos</title>
     <style>
+
+:root {
+  --separator-color: #4f5b66;
+}
+
 /* color scheme based on base16-ocean by chris kempson */
 @font-face {
   font-family: Fixedsys;
@@ -35,16 +40,10 @@
   color: #2b303b;
 }
 
-/* scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #000; }
-::-webkit-scrollbar-thumb { background: #4f5b66; }
-::-webkit-scrollbar-thumb:hover { background: #65737e; }
-
 body {
   position: absolute;
   text-align: left;
-  background-color: #000;
+  background-color: #060606;
   font-size: 14pt;
   line-height: 2.0;
 
@@ -74,25 +73,8 @@ body::after {
   z-index: 9999;
 }
 
-#header {
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: #000;
-  border-bottom: solid #4f5b66 1px;
-  padding: 15px;
-}
-
-#header h1 {
-  margin: 0;
-  font-size: 18pt;
-  font-weight: normal;
-  color: #c0c5ce;
-  text-shadow: 0 0 8px rgba(163, 190, 140, 0.3);
-}
-
 /* blinking cursor */
-#header h1::after {
+.role::after {
   content: "█";
   color: #c0c5ce;
   animation: blink 1s step-end infinite;
@@ -100,12 +82,11 @@ body::after {
   font-size: 14pt;
 }
 
-.right {
-  float: right;
-}
-
-.emphasis {
-  color: #a3be8c;
+.role::before {
+  content: "█";
+  color: transparent;
+  margin-left: 2px;
+  font-size: 14pt;
 }
 
 a {
@@ -121,31 +102,34 @@ a:hover {
   color: #000;
 }
 
-a:hover .emphasis {
-  color: #000;
+#bio {
+  text-align: center;
 }
 
-.subsection {
+#bio div {
   padding-left: 1em;
   padding-right: 1em;
 }
 
-.subsection a {
+#bio img {
+  border: solid var(--separator-color) 1px;
+}
+
+#contact {
+  padding-left: 1em;
+  padding-right: 1em;
+  min-width: 10em;
+}
+
+#contact a {
   animation: link-in 0.3s ease-out both;
-  border-bottom: solid #4f5b66 1px;
+  border-bottom: solid var(--separator-color) 1px;
 }
 
-.subsection a:nth-child(1) { animation-delay: 0.15s; }
-.subsection a:nth-child(2) { animation-delay: 0.25s; }
-.subsection a:nth-child(3) { animation-delay: 0.35s; }
-.subsection a:nth-child(4) { animation-delay: 0.45s; }
-
-#content h1 {
-  margin-top: 0px;
-  margin-bottom: 0px;
-  font-size: 24pt;
-  font-weight: normal;
-}
+#contact a:nth-child(1) { animation-delay: 0.15s; }
+#contact a:nth-child(2) { animation-delay: 0.25s; }
+#contact a:nth-child(3) { animation-delay: 0.35s; }
+#contact a:nth-child(4) { animation-delay: 0.45s; }
 
 #content {
   padding: 15px;
@@ -159,23 +143,24 @@ a:hover .emphasis {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    min-width: 360px;
+    display: flex;
+    flex-direction: row;
   }
 }
   </style>
   </head>
   <body>
-    <header id="header">
-      <h1>Andrew Comminos</h1>
-    </header>
     <div id="content">
-      <div>
-        <div id="details" class="subsection">
-          <a href="mailto:andrew@comminos.com">email</a>
-          <a href="https://www.github.com/acomminos">github</a>
-          <a href="https://linkedin.com/in/acomminos">linkedin</a>
-          <a href="https://x.com/acomminos">x</a>
-        </div>
+      <div id="bio">
+        <img src="images/headshot_dithered.png"></img>
+        <div>andrew comminos</div>
+        <div class="role">software engineer</div>
+      </div>
+      <div id="contact">
+        <a href="mailto:andrew@comminos.com">email</a>
+        <a href="https://www.github.com/acomminos">github</a>
+        <a href="https://linkedin.com/in/acomminos">linkedin</a>
+        <a href="https://x.com/acomminos">x</a>
       </div>
     </div>
   </body>
